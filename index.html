@@ -1,108 +1,143 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en-GB">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Language Prism - Word Detective Game</title>
-    <!-- Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- React and ReactDOM CDNs -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <!-- Babel for JSX transformation -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@0.321.0"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Lexend:wght@400;600;800;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Lexend:wght@400;600;700;800;900&display=swap');
         
         body { 
             font-family: 'Lexend', sans-serif; 
-            background: linear-gradient(135deg, #fef3c7 0%, #dcfce7 50%, #dbeafe 100%);
+            background: #fafafa;
+            background-image: 
+                radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), 
+                radial-gradient(at 50% 0%, hsla(225,39%,30%,1) 0, transparent 50%), 
+                radial-gradient(at 100% 0%, hsla(339,49%,30%,1) 0, transparent 50%);
+            background-attachment: fixed;
             min-height: 100vh;
+            color: #1e293b;
+            -webkit-tap-highlight-color: transparent;
+            overflow-x: hidden;
         }
 
-        .card-pop {
-            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.88);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: 3rem;
         }
-        .card-pop:hover {
-            transform: scale(1.01) translateY(-5px);
+
+        .btn-tap {
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            touch-action: manipulation;
+        }
+        .btn-tap:active {
+            transform: scale(0.94);
+        }
+
+        .gradient-border {
+            position: relative;
+            background: white;
+            z-index: 1;
+        }
+        .gradient-border::before {
+            content: "";
+            position: absolute;
+            top: -4px; left: -4px; right: -4px; bottom: -4px;
+            background: linear-gradient(45deg, #ff00bd, #00d2ff, #34ff5d, #fbff00);
+            background-size: 400%;
+            z-index: -1;
+            border-radius: calc(3rem + 4px);
+            animation: moveGradient 8s linear infinite;
+        }
+
+        @keyframes moveGradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
         }
 
         @keyframes float {
-            0% { transform: translateY(0px) rotate(0deg); }
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
             50% { transform: translateY(-15px) rotate(2deg); }
-            100% { transform: translateY(0px) rotate(0deg); }
         }
-        .animate-float { animation: float 4s ease-in-out infinite; }
-
-        .progress-glow {
-            box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
-        }
+        .animate-float { animation: float 6s ease-in-out infinite; }
 
         .rainbow-text {
-            background: linear-gradient(to right, #ef4444, #3b82f6, #10b981);
+            background: linear-gradient(to right, #6366f1, #d946ef, #f43f5e);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            font-weight: 900;
         }
 
         .detective-word {
-            text-decoration: underline;
-            text-decoration-color: #3b82f6;
-            text-decoration-thickness: 4px;
-            text-underline-offset: 6px;
-            color: #1e293b;
+            background: linear-gradient(120deg, #fef3c7 0%, #fef3c7 100%);
+            background-repeat: no-repeat;
+            background-size: 100% 0.35em;
+            background-position: 0 90%;
+            font-weight: 800;
+            color: #2563eb;
+            padding: 0 4px;
         }
+
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 10px; }
     </style>
 </head>
-<body class="overflow-x-hidden">
+<body>
     <div id="root"></div>
 
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        // --- COMPLETE QUESTION BANK FROM DOCUMENT ---
         const QUESTION_BANKS = {
             lower: [
-                { stems: [{ text: "My younger brother started <u>primary school</u> this year.", ans: "British English" }, { text: "My younger brother started <u>elementary school</u> this year.", ans: "American English" }], options: ["British English", "American English"] },
-                { stems: [{ text: "I used a <u>rubber</u> to erase my mistake in the workbook.", ans: "British English" }, { text: "I used an <u>eraser</u> to erase my mistake in the workbook.", ans: "American English" }], options: ["British English", "American English"] },
-                { stems: [{ text: "The <u>kids</u> are having fun at the park.", ans: "American English" }, { text: "The <u>children</u> are having fun at the park.", ans: "British English" }], options: ["British English", "American English"] },
-                { stems: [{ text: "The teacher gave each student a <u>cookie</u> during recess.", ans: "American English" }, { text: "The teacher gave each student a <u>biscuit</u> during recess.", ans: "British English" }], options: ["British English", "American English"] },
-                { stems: [{ text: "“He <u>very clever</u>,” said Mrs Lim.", ans: "Singlish" }, { text: "“He <u>is very clever</u>,“ said Mrs Lim.", ans: "British English" }], options: ["British English", "Singlish"] },
-                { stems: [{ text: "I offered my little brother a <u>candy</u> after dinner.", ans: "American English" }, { text: "I offered my little brother a <u>sweet</u> after dinner.", ans: "British English" }], options: ["British English", "American English"] },
-                { stems: [{ text: "The <u>airplane</u> took off smoothly from Changi Airport.", ans: "American English" }, { text: "The <u>aeroplane</u> took off smoothly from Changi Airport.", ans: "British English" }], options: ["British English", "American English"] },
-                { stems: [{ text: "He plays <u>football</u> with his friends every weekend.", ans: "British English" }, { text: "He plays <u>soccer</u> with his friends every weekend.", ans: "American English" }], options: ["British English", "American English"] },
-                { stems: [{ text: "We took a <u>cab</u> to the airport this morning.", ans: "American English" }, { text: "We took a <u>taxi</u> to the airport this morning.", ans: "British English" }], options: ["British English", "American English"] },
-                { stems: [{ text: "He emptied the <u>rubbish bin</u> after dinner.", ans: "British English" }, { text: "He emptied the <u>trash bin</u> after dinner.", ans: "American English" }], options: ["British English", "American English"] }
+                { stems: [{ text: "My younger brother started <u>primary school</u> this year.", ans: "UK (British English)" }, { text: "My younger brother started <u>elementary school</u> this year.", ans: "USA (American English)" }], options: ["UK (British English)", "USA (American English)"] },
+                { stems: [{ text: "I used a <u>rubber</u> to erase my mistake in the workbook.", ans: "UK (British English)" }, { text: "I used an <u>eraser</u> to erase my mistake in the workbook.", ans: "USA (American English)" }], options: ["UK (British English)", "USA (American English)"] },
+                { stems: [{ text: "The <u>kids</u> are having fun at the park.", ans: "USA (American English)" }, { text: "The <u>children</u> are having fun at the park.", ans: "UK (British English)" }], options: ["UK (British English)", "USA (American English)"] },
+                { stems: [{ text: "The teacher gave each student a <u>cookie</u> during recess.", ans: "USA (American English)" }, { text: "The teacher gave each student a <u>biscuit</u> during recess.", ans: "UK (British English)" }], options: ["UK (British English)", "USA (American English)"] },
+                { stems: [{ text: "“He <u>very clever</u>,” said Mrs Lim.", ans: "SG (Singlish)" }, { text: "“He <u>is very clever</u>,” said Mrs Lim.", ans: "UK (British English)" }], options: ["UK (British English)", "SG (Singlish)"] },
+                { stems: [{ text: "I offered my little brother a <u>candy</u> after dinner.", ans: "USA (American English)" }, { text: "I offered my little brother a <u>sweet</u> after dinner.", ans: "UK (British English)" }], options: ["UK (British English)", "USA (American English)"] },
+                { stems: [{ text: "The <u>airplane</u> took off smoothly from Changi Airport.", ans: "USA (American English)" }, { text: "The <u>aeroplane</u> took off smoothly from Changi Airport.", ans: "UK (British English)" }], options: ["UK (British English)", "USA (American English)"] },
+                { stems: [{ text: "He plays <u>football</u> with his friends every weekend.", ans: "UK (British English)" }, { text: "He plays <u>soccer</u> with his friends every weekend.", ans: "USA (American English)" }], options: ["UK (British English)", "USA (American English)"] },
+                { stems: [{ text: "We took a <u>cab</u> to the airport this morning.", ans: "USA (American English)" }, { text: "We took a <u>taxi</u> to the airport this morning.", ans: "UK (British English)" }], options: ["UK (British English)", "USA (American English)"] },
+                { stems: [{ text: "He emptied the <u>rubbish bin</u> after dinner.", ans: "UK (British English)" }, { text: "He emptied the <u>trash bin</u> after dinner.", ans: "USA (American English)" }], options: ["UK (British English)", "USA (American English)"] }
             ],
             middle: [
-                { stems: [{ text: "He shone a <u>torchlight</u> under the bed.", ans: "Singlish" }, { text: "He shone a <u>torch</u> under the bed.", ans: "British English" }, { text: "He shone a <u>flashlight</u> under the bed.", ans: "American English" }], options: ["Singlish", "British English", "American English"] },
-                { stems: [{ text: "The <u>tap</u> in the kitchen is leaking.", ans: "British English" }, { text: "The <u>faucet</u> in the kitchen is leaking.", ans: "American English" }], options: ["British English", "American English"] },
-                { stems: [{ text: "My father stopped at the <u>petrol station</u> to fill up the car.", ans: "British English" }, { text: "My father stopped at the <u>gas station</u> to fill up the car.", ans: "American English" }], options: ["British English", "American English"] },
-                { stems: [{ text: "I need to use the <u>toilet</u> before we leave.", ans: "British English" }, { text: "I need to use the <u>restroom</u> before we leave.", ans: "American English" }], options: ["British English", "American English"] },
-                { stems: [{ text: "The students <u>queue up</u> for food in the canteen.", ans: "British English" }, { text: "The students <u>line up</u> for food in the canteen.", ans: "American English" }], options: ["British English", "American English"] },
-                { stems: [{ text: "He filled the <u>jug</u> with lemonade for the party.", ans: "British English" }, { text: "He filled the <u>pitcher</u> with lemonade for the party.", ans: "American English" }], options: ["British English", "American English"] },
-                { stems: [{ text: "I bought a <u>tin</u> of sardines from the supermarket.", ans: "British English" }, { text: "I bought a <u>can</u> of sardines from the supermarket.", ans: "American English" }], options: ["British English", "American English"] },
-                { stems: [{ text: "Mrs Chan is the <u>Headmistress</u> of our school.", ans: "British English" }, { text: "Mrs Chan is the <u>Principal</u> of our school.", ans: "American English" }], options: ["British English", "American English"] },
-                { stems: [{ text: "He bought a new pair of black <u>trousers</u> for work.", ans: "British English" }, { text: "He bought a new pair of black <u>pants</u> for work.", ans: "American English" }], options: ["British English", "American English"] },
-                { stems: [{ text: "The <u>lift</u> is out of order today.", ans: "British English" }, { text: "The <u>elevator</u> is out of order today.", ans: "American English" }], options: ["British English", "American English"] }
+                { stems: [{ text: "He shone a <u>torchlight</u> under the bed.", ans: "SG (Singlish)" }, { text: "He shone a <u>torch</u> under the bed.", ans: "UK (British English)" }, { text: "He shone a <u>flashlight</u> under the bed.", ans: "USA (American English)" }], options: ["SG (Singlish)", "UK (British English)", "USA (American English)"] },
+                { stems: [{ text: "The <u>tap</u> in the kitchen is leaking.", ans: "UK (British English)" }, { text: "The <u>faucet</u> in the kitchen is leaking.", ans: "USA (American English)" }], options: ["UK (British English)", "USA (American English)"] },
+                { stems: [{ text: "My father stopped at the <u>petrol station</u> to fill up the car.", ans: "UK (British English)" }, { text: "My father stopped at the <u>gas station</u> to fill up the car.", ans: "USA (American English)" }], options: ["UK (British English)", "USA (American English)"] },
+                { stems: [{ text: "I need to use the <u>toilet</u> before we leave.", ans: "UK (British English)" }, { text: "I need to use the <u>restroom</u> before we leave.", ans: "USA (American English)" }], options: ["UK (British English)", "USA (American English)"] },
+                { stems: [{ text: "The students <u>queue up</u> for food in the canteen.", ans: "UK (British English)" }, { text: "The students <u>line up</u> for food in the canteen.", ans: "USA (American English)" }], options: ["UK (British English)", "USA (American English)"] },
+                { stems: [{ text: "He filled the <u>jug</u> with lemonade for the party.", ans: "UK (British English)" }, { text: "He filled the <u>pitcher</u> with lemonade for the party.", ans: "USA (American English)" }], options: ["UK (British English)", "USA (American English)"] },
+                { stems: [{ text: "I bought a <u>tin</u> of sardines from the supermarket.", ans: "UK (British English)" }, { text: "I bought a <u>can</u> of sardines from the supermarket.", ans: "USA (American English)" }], options: ["UK (British English)", "USA (American English)"] },
+                { stems: [{ text: "Mrs Chan is the <u>Headmistress</u> of our school.", ans: "UK (British English)" }, { text: "Mrs Chan is the <u>Principal</u> of our school.", ans: "USA (American English)" }], options: ["UK (British English)", "USA (American English)"] },
+                { stems: [{ text: "He bought a new pair of black <u>trousers</u> for work.", ans: "UK (British English)" }, { text: "He bought a new pair of black <u>pants</u> for work.", ans: "USA (American English)" }], options: ["UK (British English)", "USA (American English)"] },
+                { stems: [{ text: "The <u>lift</u> is out of order today.", ans: "UK (British English)" }, { text: "The <u>elevator</u> is out of order today.", ans: "USA (American English)" }], options: ["UK (British English)", "USA (American English)"] }
             ],
             upper: [
-                { stems: [{ text: "People enjoy the park during <u>autumn</u>.", ans: "British English" }, { text: "People enjoy the park during <u>fall</u>.", ans: "American English" }], options: ["British English", "American English"] },
-                { stems: [{ text: "Can you <u>chope</u> a seat for me?", ans: "Singlish" }, { text: "Could you <u>save</u> me a seat?", ans: "British English" }], options: ["British English", "Singlish"] },
-                { stems: [{ text: "I bought potato <u>crisps</u>.", ans: "British English" }, { text: "I bought potato <u>chips</u>.", ans: "American English" }], options: ["British English", "American English"] },
-                { stems: [{ text: "I bought a <u>takeaway</u> for dinner.", ans: "British English" }, { text: "I bought a <u>takeout</u> for dinner.", ans: "American English" }], options: ["British English", "American English"] },
-                { stems: [{ text: "I need to check my <u>timetable</u> to see what’s after recess.", ans: "British English" }, { text: "I need to check my <u>schedule</u> to see what’s after recess.", ans: "American English" }], options: ["British English", "American English"] },
-                { stems: [{ text: "She put her luggage in the <u>boot</u> of the car.", ans: "British English" }, { text: "She put her luggage in the <u>trunk</u> of the car.", ans: "American English" }], options: ["British English", "American English"] },
-                { stems: [{ text: "He is a very <u>clever</u> boy.", ans: "British English" }, { text: "He is a very <u>smart</u> boy.", ans: "American English" }], options: ["British English", "American English"] },
-                { stems: [{ text: "The <u>flat</u> is on the fifth floor.", ans: "British English" }, { text: "The <u>apartment</u> is on the fifth floor.", ans: "American English" }], options: ["British English", "American English"] },
-                { stems: [{ text: "I need to check the <u>post</u>.", ans: "British English" }, { text: "I need to check the <u>mail</u>.", ans: "American English" }], options: ["British English", "American English"] },
-                { stems: [{ text: "Don't forget the <u>pavement</u> is wet.", ans: "British English" }, { text: "Don't forget the <u>sidewalk</u> is wet.", ans: "American English" }], options: ["British English", "American English"] }
+                { stems: [{ text: "People enjoy the park during <u>autumn</u>.", ans: "UK (British English)" }, { text: "People enjoy the park during <u>fall</u>.", ans: "USA (American English)" }], options: ["UK (British English)", "USA (American English)"] },
+                { stems: [{ text: "Can you <u>chope</u> a seat for me?", ans: "SG (Singlish)" }, { text: "Could you <u>save</u> me a seat?", ans: "UK (British English)" }], options: ["UK (British English)", "SG (Singlish)"] },
+                { stems: [{ text: "I bought potato <u>crisps</u>.", ans: "UK (British English)" }, { text: "I bought potato <u>chips</u>.", ans: "USA (American English)" }], options: ["UK (British English)", "USA (American English)"] },
+                { stems: [{ text: "I bought a <u>takeaway</u> for dinner.", ans: "UK (British English)" }, { text: "I bought a <u>takeout</u> for dinner.", ans: "USA (American English)" }], options: ["UK (British English)", "USA (American English)"] },
+                { stems: [{ text: "I need to check my <u>timetable</u> to see what’s after recess.", ans: "UK (British English)" }, { text: "I need to check my <u>schedule</u> to see what’s after recess.", ans: "USA (American English)" }], options: ["UK (British English)", "USA (American English)"] },
+                { stems: [{ text: "She put her luggage in the <u>boot</u> of the car.", ans: "UK (British English)" }, { text: "She put her luggage in the <u>trunk</u> of the car.", ans: "USA (American English)" }], options: ["UK (British English)", "USA (American English)"] },
+                { stems: [{ text: "He is a very <u>clever</u> boy.", ans: "UK (British English)" }, { text: "He is a very <u>smart</u> boy.", ans: "USA (American English)" }], options: ["UK (British English)", "USA (American English)"] },
+                { stems: [{ text: "The <u>flat</u> is on the fifth floor.", ans: "UK (British English)" }, { text: "The <u>apartment</u> is on the fifth floor.", ans: "USA (American English)" }], options: ["UK (British English)", "USA (American English)"] },
+                { stems: [{ text: "I need to check the <u>post</u>.", ans: "UK (British English)" }, { text: "I need to check the <u>mail</u>.", ans: "USA (American English)" }], options: ["UK (British English)", "USA (American English)"] },
+                { stems: [{ text: "Don't forget the <u>pavement</u> is wet.", ans: "UK (British English)" }, { text: "Don't forget the <u>sidewalk</u> is wet.", ans: "USA (American English)" }], options: ["UK (British English)", "USA (American English)"] }
             ]
         };
 
-        const FLAGS = { "American English": "🇺🇸", "Singlish": "🇸🇬", "British English": "🇬🇧" };
-        const TIER_LABELS = { lower: "P1-P2 (Beginner)", middle: "P3-P4 (Explorer)", upper: "P5-P6 (Expert)" };
+        const FLAGS = { "USA (American English)": "🇺🇸", "SG (Singlish)": "🇸🇬", "UK (British English)": "🇬🇧" };
         const apiKey = "";
 
         const App = () => {
@@ -113,31 +148,24 @@
             const [answers, setAnswers] = useState({});
             const [isSubmitted, setIsSubmitted] = useState(false);
             const [score, setScore] = useState(0);
-            const [maxScore, setMaxScore] = useState(0);
             const [loadingAudio, setLoadingAudio] = useState(null);
 
             const startQuiz = (lvl) => {
                 setLevel(lvl);
                 const bank = QUESTION_BANKS[lvl];
-                // Fisher-Yates Shuffle for true rotation
                 const shuffled = [...bank].sort(() => Math.random() - 0.5);
-                setQuestions(shuffled.slice(0, 10)); // Pick 10 at random
+                setQuestions(shuffled.slice(0, 10));
                 setCurrentIndex(0);
                 setScore(0);
-                setMaxScore(0);
                 setAnswers({});
                 setIsSubmitted(false);
                 setScreen('instructions');
             };
 
             const handleSubmit = () => {
-                let currentQScore = 0;
                 const q = questions[currentIndex];
-                q.stems.forEach((s, idx) => {
-                    if (answers[idx] === s.ans) currentQScore++;
-                });
-                setScore(s => s + currentQScore);
-                setMaxScore(m => m + q.stems.length);
+                const allCorrect = q.stems.every((s, idx) => answers[idx] === s.ans);
+                if (allCorrect) setScore(prev => prev + 1);
                 setIsSubmitted(true);
             };
 
@@ -149,6 +177,23 @@
                 } else {
                     setScreen('result');
                 }
+            };
+
+            const createWavHeader = (data, sampleRate) => {
+                const buffer = new ArrayBuffer(44 + data.length);
+                const view = new DataView(buffer);
+                const writeString = (offset, string) => {
+                    for (let i = 0; i < string.length; i++) view.setUint8(offset + i, string.charCodeAt(i));
+                };
+                writeString(0, 'RIFF'); view.setUint32(4, 32 + data.length, true);
+                writeString(8, 'WAVE'); writeString(12, 'fmt ');
+                view.setUint32(16, 16, true); view.setUint16(20, 1, true);
+                view.setUint16(22, 1, true); view.setUint32(24, sampleRate, true);
+                view.setUint32(28, sampleRate * 2, true); view.setUint16(32, 2, true);
+                view.setUint16(34, 16, true); writeString(36, 'data');
+                view.setUint32(40, data.length, true);
+                for (let i = 0; i < data.length; i++) view.setUint8(44 + i, data.charCodeAt(i));
+                return buffer;
             };
 
             const playAudio = async (text, idx) => {
@@ -177,84 +222,75 @@
                 }
             };
 
-            const createWavHeader = (data, sampleRate) => {
-                const buffer = new ArrayBuffer(44 + data.length);
-                const view = new DataView(buffer);
-                const writeString = (offset, string) => {
-                    for (let i = 0; i < string.length; i++) view.setUint8(offset + i, string.charCodeAt(i));
-                };
-                writeString(0, 'RIFF'); view.setUint32(4, 32 + data.length, true);
-                writeString(8, 'WAVE'); writeString(12, 'fmt ');
-                view.setUint32(16, 16, true); view.setUint16(20, 1, true);
-                view.setUint16(22, 1, true); view.setUint32(24, sampleRate, true);
-                view.setUint32(28, sampleRate * 2, true); view.setUint16(32, 2, true);
-                view.setUint16(34, 16, true); writeString(36, 'data');
-                view.setUint32(40, data.length, true);
-                for (let i = 0; i < data.length; i++) view.setUint8(44 + i, data.charCodeAt(i));
-                return buffer;
-            };
-
             const Home = () => (
-                <div className="flex flex-col items-center justify-center min-h-screen p-6 text-center">
-                    <div className="bg-white/90 backdrop-blur-md p-10 md:p-16 rounded-[4rem] shadow-[0_20px_50px_rgba(0,0,0,0.1)] max-w-4xl w-full border-8 border-white animate-float">
-                        <div className="mb-8 flex justify-center gap-8 text-7xl drop-shadow-lg">
-                            <span>{FLAGS["Singlish"]}</span><span>{FLAGS["British English"]}</span><span>{FLAGS["American English"]}</span>
+                <div className="flex flex-col items-center justify-center min-h-screen p-8 lg:p-12">
+                    <div className="glass-panel p-12 md:p-20 shadow-2xl max-w-6xl w-full text-center relative overflow-hidden animate-float">
+                        <div className="absolute top-0 left-0 w-full h-4 bg-gradient-to-r from-blue-400 via-pink-400 to-yellow-400"></div>
+                        
+                        <div className="flex justify-center gap-10 mb-12 text-8xl md:text-9xl drop-shadow-xl hover:scale-110 transition-transform cursor-default">
+                            <span>🇸🇬</span><span>🇬🇧</span><span>🇺🇸</span>
                         </div>
-                        <h1 className="text-6xl md:text-7xl font-[900] mb-6 tracking-tight text-slate-800 drop-shadow-sm">
-                            Welcome to <span className="rainbow-text">Language Prism</span>
+
+                        <h1 className="text-7xl md:text-8xl font-[900] mb-8 tracking-tighter text-slate-900">
+                            <span className="rainbow-text">Language Prism</span>
                         </h1>
-                        <p className="text-2xl text-slate-600 mb-12 font-semibold max-w-2xl mx-auto leading-relaxed">
-                            "We are going on a trip to three different places: the USA, the UK, and Singapore. Even though people in these places all speak English, they sometimes use different words for the same thing. In this game, your job is to be a word detective!"
-                        </p>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                            <LevelBtn title="P1-P2" sub="Beginner" color="bg-[#FF9FF3]" shadow="shadow-[#f368e0]" icon="🎈" onClick={() => startQuiz('lower')} />
-                            <LevelBtn title="P3-P4" sub="Explorer" color="bg-[#FECA57]" shadow="shadow-[#ff9f43]" icon="🚀" onClick={() => startQuiz('middle')} />
-                            <LevelBtn title="P5-P6" sub="Expert" color="bg-[#48DBFB]" shadow="shadow-[#0abde3]" icon="🧠" onClick={() => startQuiz('upper')} />
+
+                        <div className="max-w-3xl mx-auto mb-16 p-10 bg-blue-50/50 rounded-[3rem] border-2 border-blue-100">
+                            <p className="text-2xl md:text-3xl text-slate-700 font-semibold leading-relaxed">
+                                "We are going on a trip to the USA, the UK, and Singapore. Everyone speaks English, but they use different <b>secret codes</b>! Can you be our <span className="text-blue-600 font-black">Word Detective</span>?"
+                            </p>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
+                            <LevelBtn title="P1-P2" sub="Beginner" color="bg-gradient-to-br from-pink-400 to-pink-600" icon="🎈" onClick={() => startQuiz('lower')} />
+                            <LevelBtn title="P3-P4" sub="Explorer" color="bg-gradient-to-br from-amber-400 to-orange-600" icon="🚀" onClick={() => startQuiz('middle')} />
+                            <LevelBtn title="P5-P6" sub="Expert" color="bg-gradient-to-br from-blue-400 to-indigo-600" icon="🧠" onClick={() => startQuiz('upper')} />
                         </div>
                     </div>
                 </div>
             );
 
-            const LevelBtn = ({ title, sub, color, shadow, icon, onClick }) => (
-                <button onClick={onClick} className={`${color} ${shadow} p-8 rounded-[3rem] text-white shadow-[0_12px_0_0] hover:shadow-none hover:translate-y-[8px] transition-all active:scale-95 flex flex-col items-center border-4 border-white`}>
-                    <span className="text-6xl mb-4">{icon}</span>
-                    <span className="font-black text-3xl mb-1">{title}</span>
-                    <span className="text-lg font-bold opacity-90 tracking-widest uppercase">{sub}</span>
+            const LevelBtn = ({ title, sub, color, icon, onClick }) => (
+                <button onClick={onClick} className={`btn-tap ${color} p-10 rounded-[3.5rem] text-white shadow-2xl border-4 border-white/50 flex flex-col items-center group relative overflow-hidden`}>
+                    <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <span className="text-7xl mb-6 group-hover:scale-125 transition-transform duration-300">{icon}</span>
+                    <span className="font-black text-4xl mb-2 tracking-tighter">{title}</span>
+                    <span className="text-xl font-bold opacity-80 uppercase tracking-widest">{sub}</span>
                 </button>
             );
 
             const Instructions = () => (
-                <div className="flex flex-col items-center justify-center min-h-screen p-6">
-                    <div className="bg-white p-12 rounded-[4rem] shadow-2xl max-w-3xl w-full border-8 border-blue-100 text-center relative">
-                        {/* Selected Tier Badge */}
-                        <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-blue-600 text-white px-8 py-2 rounded-full font-black text-xl shadow-lg border-4 border-white">
-                            TIER: {TIER_LABELS[level]}
+                <div className="flex flex-col items-center justify-center min-h-screen p-8">
+                    <div className="glass-panel p-16 shadow-2xl max-w-4xl w-full border-b-8 border-blue-500/20">
+                        <div className="flex items-center justify-center gap-4 mb-12">
+                            <div className="h-1 flex-1 bg-slate-200"></div>
+                            <h2 className="text-6xl font-black text-slate-800 tracking-tight">MISSION BRIEF</h2>
+                            <div className="h-1 flex-1 bg-slate-200"></div>
                         </div>
 
-                        <h2 className="text-5xl font-black text-slate-800 mb-8 mt-4">How to Play:</h2>
-                        <div className="space-y-6 mb-12 text-left">
-                            <Step icon="📖" text="Read the sentences carefully." color="bg-pink-100 text-pink-600" />
-                            <Step icon="🔍" text={<span>Look at the <span className="underline decoration-blue-500 decoration-4">underlined words</span>.</span>} color="bg-yellow-100 text-yellow-600" />
-                            <Step icon="🌍" text="Guess which country uses that word! Is it American English, British English, or Singlish?" color="bg-green-100 text-green-600" />
+                        <div className="grid gap-6 mb-16">
+                            <InstructionCard icon="📖" color="bg-pink-500" text="Read the sentences carefully." />
+                            <InstructionCard icon="🔎" color="bg-blue-500" text={<span>Look at the <span className="detective-word">underlined words</span>.</span>} />
+                            <InstructionCard icon="🌍" color="bg-amber-500" text="Guess which country uses that word!" />
+                            <InstructionCard icon="⭐" color="bg-emerald-500" text="Are you ready to spot the differences?" />
                         </div>
-                        <p className="text-xl font-bold text-slate-500 mb-10 italic">Are you ready to spot the differences? Let’s play! 🕵️‍♂️✨</p>
-                        
-                        <div className="flex flex-col sm:flex-row gap-4">
-                            <button onClick={() => setScreen('home')} className="flex-1 bg-slate-100 text-slate-600 py-6 rounded-[2.5rem] font-black text-2xl hover:bg-slate-200 transition-all border-4 border-slate-200">
-                                BACK TO MENU
+
+                        <div className="flex flex-col md:flex-row gap-6">
+                            <button onClick={() => setScreen('home')} className="btn-tap flex-1 bg-slate-100 text-slate-500 py-8 rounded-[2.5rem] font-black text-2xl hover:bg-slate-200 transition-all uppercase">
+                                Menu
                             </button>
-                            <button onClick={() => setScreen('quiz')} className="flex-[2] bg-green-500 text-white py-6 rounded-[2.5rem] font-black text-3xl shadow-[0_10px_0_0_#22c55e] hover:shadow-none hover:translate-y-2 transition-all">
-                                START! ✨
+                            <button onClick={() => setScreen('quiz')} className="btn-tap flex-[2] bg-emerald-500 text-white py-8 rounded-[2.5rem] font-black text-4xl shadow-xl hover:translate-y-[4px] transition-all uppercase tracking-tighter">
+                                Start Detective Work! 🕵️‍♂️
                             </button>
                         </div>
                     </div>
                 </div>
             );
 
-            const Step = ({ icon, text, color }) => (
-                <div className="flex items-center gap-6 p-5 rounded-3xl bg-slate-50 border-2 border-slate-100">
-                    <span className={`text-4xl w-16 h-16 flex items-center justify-center rounded-2xl flex-shrink-0 ${color}`}>{icon}</span>
-                    <span className="text-2xl font-bold text-slate-700 leading-snug">{text}</span>
+            const InstructionCard = ({ icon, text, color }) => (
+                <div className="flex items-center gap-8 p-8 bg-white/50 rounded-[2.5rem] border-2 border-white">
+                    <div className={`${color} w-20 h-20 rounded-3xl flex items-center justify-center text-5xl shadow-lg`}>{icon}</div>
+                    <div className="text-3xl font-bold text-slate-700 leading-snug">{text}</div>
                 </div>
             );
 
@@ -262,65 +298,66 @@
                 const q = questions[currentIndex];
                 if (!q) return null;
                 return (
-                    <div className="p-6 md:p-10 max-w-7xl mx-auto">
-                        <div className="flex justify-between items-center mb-10">
-                            <button onClick={() => setScreen('home')} className="bg-white p-4 rounded-2xl shadow-md text-slate-500 hover:text-pink-500 transition-colors">
-                                <i data-lucide="home"></i>
-                            </button>
-                            <div className="bg-white px-8 py-3 rounded-full shadow-md font-black text-slate-600 flex items-center gap-3">
-                                <span className="w-3 h-3 rounded-full bg-green-500 animate-pulse"></span>
-                                DETECTIVE MODE: {level.toUpperCase()}
+                    <div className="p-8 md:p-12 max-w-[1400px] mx-auto min-h-screen flex flex-col">
+                        <div className="flex items-center justify-between mb-10">
+                            <div className="flex items-center gap-6">
+                                <button onClick={() => setScreen('home')} className="btn-tap bg-white/80 p-6 rounded-3xl shadow-lg text-slate-400 hover:text-red-500">
+                                    <i data-lucide="home" className="w-10 h-10"></i>
+                                </button>
+                                <div className="glass-panel px-10 py-5 font-black text-2xl text-blue-600 shadow-xl border-4 border-white">
+                                    MISSION: {currentIndex + 1} / {questions.length}
+                                </div>
                             </div>
-                            <div className="text-3xl font-black text-slate-400">{currentIndex + 1} / {questions.length}</div>
+
+                            <div className="flex items-center gap-6">
+                                <div className="bg-amber-400 text-white px-8 py-5 rounded-3xl shadow-xl font-black text-3xl flex items-center gap-4 border-4 border-white">
+                                    <i data-lucide="star" className="fill-white"></i>
+                                    {score}
+                                </div>
+                            </div>
                         </div>
 
-                        <div className="w-full bg-white h-6 rounded-full mb-12 p-1 shadow-inner border-2 border-slate-200">
-                            <div className="bg-gradient-to-r from-pink-400 to-blue-400 h-full rounded-full transition-all duration-700 progress-glow" style={{ width: `${((currentIndex + 1) / questions.length) * 100}%` }}></div>
+                        <div className="w-full bg-black/10 h-10 rounded-full mb-12 p-1.5 backdrop-blur-md">
+                            <div className="bg-gradient-to-r from-blue-400 via-pink-500 to-yellow-400 h-full rounded-full transition-all duration-1000 shadow-lg" style={{ width: `${((currentIndex + 1) / questions.length) * 100}%` }}></div>
                         </div>
 
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 flex-grow">
                             {q.stems.map((s, idx) => (
-                                <div key={idx} className={`p-10 rounded-[4rem] border-8 transition-all card-pop relative overflow-hidden flex flex-col justify-between ${isSubmitted ? (answers[idx] === s.ans ? 'border-green-400 bg-green-50' : 'border-red-400 bg-red-50') : 'bg-white border-white shadow-xl'}`}>
+                                <div key={idx} className={`gradient-border p-12 rounded-[4rem] flex flex-col justify-between transition-all relative ${isSubmitted ? (answers[idx] === s.ans ? 'shadow-[0_0_50px_rgba(34,197,94,0.4)]' : 'shadow-[0_0_50px_rgba(239,68,68,0.4)]') : 'shadow-2xl'}`}>
                                     <div>
-                                        <div className="flex justify-between items-center mb-8">
+                                        <div className="flex justify-between items-center mb-10">
                                             <button 
                                                 onClick={() => playAudio(s.text, idx)}
-                                                className={`w-20 h-20 rounded-[1.5rem] transition-all flex items-center justify-center text-4xl shadow-lg ${loadingAudio === idx ? 'bg-yellow-400 animate-pulse text-white' : 'bg-blue-500 text-white hover:bg-blue-600 active:scale-90'}`}
+                                                className={`btn-tap w-24 h-24 rounded-3xl flex items-center justify-center text-5xl shadow-xl ${loadingAudio === idx ? 'bg-amber-400 text-white animate-pulse' : 'bg-indigo-500 text-white'}`}
                                             >
-                                                <i data-lucide={loadingAudio === idx ? "loader-2" : "volume-2"}></i>
+                                                <i data-lucide={loadingAudio === idx ? "loader-2" : "volume-2"} className={loadingAudio === idx ? "animate-spin" : ""}></i>
                                             </button>
-                                            <div className="text-slate-300 font-bold italic text-xl">Sentence {idx + 1}</div>
+                                            <div className="bg-slate-100 px-6 py-2 rounded-full text-slate-400 font-black text-xl">CASE {idx + 1}</div>
                                         </div>
-                                        
-                                        <p 
-                                            className="text-3xl md:text-4xl font-extrabold text-slate-800 mb-12 leading-[1.4]"
-                                            dangerouslySetInnerHTML={{ __html: s.text.replace(/<u>/g, '<span class="detective-word">').replace(/<\/u>/g, '</span>') }}
-                                        />
+                                        <h3 className="text-4xl md:text-5xl font-extrabold text-slate-800 mb-12 leading-tight" dangerouslySetInnerHTML={{ __html: s.text.replace(/<u>/g, '<span class="detective-word">').replace(/<\/u>/g, '</span>') }} />
                                     </div>
 
-                                    <div className="space-y-4">
+                                    <div className="grid gap-5">
                                         {q.options.map(opt => {
                                             const isSel = answers[idx] === opt;
                                             const isCorrect = s.ans === opt;
-                                            let cls = "w-full p-6 rounded-[2rem] font-black text-xl text-left border-4 transition-all flex justify-between items-center ";
+                                            let cls = "btn-tap w-full p-10 rounded-[2.5rem] font-black text-2xl text-left border-4 flex justify-between items-center ";
                                             
                                             if (isSubmitted) {
-                                                if (isCorrect) cls += "bg-green-500 border-green-600 text-white shadow-[0_8px_0_0_#16a34a]";
-                                                else if (isSel) cls += "bg-red-500 border-red-600 text-white shadow-[0_8px_0_0_#dc2626]";
-                                                else cls += "opacity-30 border-slate-100 bg-slate-50";
+                                                if (isCorrect) cls += "bg-emerald-500 border-emerald-600 text-white scale-105 z-10 shadow-2xl";
+                                                else if (isSel) cls += "bg-rose-500 border-rose-600 text-white opacity-90";
+                                                else cls += "opacity-20 border-slate-100 bg-slate-50";
                                             } else {
-                                                cls += isSel ? "bg-blue-500 border-blue-600 text-white shadow-[0_8px_0_0_#2563eb] translate-y-[-2px]" : "bg-white border-slate-100 hover:border-blue-200 hover:bg-blue-50 text-slate-600 shadow-md";
+                                                cls += isSel ? "bg-indigo-600 border-indigo-700 text-white shadow-xl -translate-y-2" : "bg-white border-slate-100 text-slate-600 hover:border-indigo-200 hover:bg-indigo-50";
                                             }
 
                                             return (
                                                 <button key={opt} disabled={isSubmitted} onClick={() => setAnswers({...answers, [idx]: opt})} className={cls}>
-                                                    <span className="flex items-center gap-4">
-                                                        <span className="text-4xl">
-                                                            {FLAGS[opt]}
-                                                        </span> 
-                                                        {opt}
+                                                    <span className="flex items-center gap-8">
+                                                        <span className="text-6xl">{FLAGS[opt]}</span>
+                                                        <span className="text-3xl">{opt}</span>
                                                     </span>
-                                                    {isSubmitted && isCorrect && <i data-lucide="sparkles" className="animate-bounce"></i>}
+                                                    {isSubmitted && isCorrect && <i data-lucide="check-circle-2" className="w-12 h-12"></i>}
                                                 </button>
                                             );
                                         })}
@@ -329,21 +366,18 @@
                             ))}
                         </div>
 
-                        <div className="mt-20 flex justify-center pb-20">
+                        <div className="mt-16 flex justify-center pb-12">
                             {!isSubmitted ? (
                                 <button 
-                                    onClick={handleSubmit}
+                                    onClick={handleSubmit} 
                                     disabled={Object.keys(answers).length < q.stems.length}
-                                    className="bg-slate-800 text-white px-20 py-8 rounded-[3rem] font-black text-4xl shadow-[0_15px_0_0_#000] hover:shadow-none hover:translate-y-3 active:scale-95 disabled:opacity-20 transition-all"
+                                    className="btn-tap bg-slate-900 text-white px-32 py-12 rounded-[3.5rem] font-black text-5xl shadow-2xl disabled:opacity-30 tracking-tight uppercase"
                                 >
-                                    CHECK ANSWERS
+                                    Check Case! 🔎
                                 </button>
                             ) : (
-                                <button 
-                                    onClick={handleNext} 
-                                    className="bg-gradient-to-r from-pink-500 to-purple-500 text-white px-20 py-8 rounded-[3rem] font-black text-4xl shadow-[0_15px_0_0_#9333ea] hover:shadow-none hover:translate-y-3 transition-all animate-bounce-short flex items-center gap-6"
-                                >
-                                    NEXT QUESTION <i data-lucide="chevron-right" className="w-10 h-10"></i>
+                                <button onClick={handleNext} className="btn-tap bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white px-32 py-12 rounded-[3.5rem] font-black text-5xl shadow-2xl flex items-center gap-8 tracking-tight uppercase">
+                                    Next Mission <i data-lucide="arrow-right" className="w-12 h-12"></i>
                                 </button>
                             )}
                         </div>
@@ -352,20 +386,30 @@
             };
 
             const Result = () => {
-                const pct = Math.round((score / maxScore) * 100);
-                const isWinner = pct > 70;
+                const total = questions.length;
+                const isWinner = score >= 7;
                 return (
-                    <div className="flex flex-col items-center justify-center min-h-screen p-6 text-center">
-                        <div className="bg-white p-16 rounded-[5rem] shadow-2xl max-w-2xl w-full border-8 border-yellow-200">
-                            <div className="text-9xl mb-10 animate-float">{isWinner ? "🎖️" : "🔎"}</div>
-                            <h2 className="text-5xl font-black text-slate-800 mb-8">{isWinner ? "Master Detective!" : "Good Effort!"}</h2>
-                            <div className="text-[10rem] font-black leading-none rainbow-text mb-12">{pct}%</div>
-                            <div className="space-y-6">
-                                <button onClick={() => startQuiz(level)} className="w-full bg-blue-500 text-white py-8 rounded-[3rem] font-black text-3xl shadow-[0_12px_0_0_#2563eb] hover:shadow-none hover:translate-y-3 transition-all">
-                                    TRY AGAIN
+                    <div className="flex flex-col items-center justify-center min-h-screen p-8">
+                        <div className="glass-panel p-20 shadow-2xl max-w-4xl w-full text-center border-8 border-white relative">
+                            <div className="text-[14rem] mb-8 animate-float">{isWinner ? "🏆" : "🕵️‍♂️"}</div>
+                            <h2 className="text-7xl font-black text-slate-900 mb-6">
+                                {isWinner ? "CASE CLOSED!" : "MISSION COMPLETE!"}
+                            </h2>
+                            <p className="text-3xl font-bold text-slate-500 mb-12 leading-relaxed">
+                                You identified <span className="text-indigo-600 font-black">{score}</span> mysteries correctly.
+                                <br/>{isWinner ? "You're a master detective!" : "Keep practicing to find more secret codes!"}
+                            </p>
+                            
+                            <div className="relative inline-block mb-16">
+                                <div className="text-[14rem] font-black leading-none rainbow-text">{score}/{total}</div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <button onClick={() => setScreen('home')} className="btn-tap bg-slate-100 text-slate-500 py-12 rounded-[3rem] font-black text-4xl uppercase">
+                                    Main Menu
                                 </button>
-                                <button onClick={() => setScreen('home')} className="w-full bg-white border-4 border-slate-100 text-slate-400 py-8 rounded-[3rem] font-black text-2xl hover:bg-slate-50 transition-all">
-                                    BACK TO MENU
+                                <button onClick={() => startQuiz(level)} className="btn-tap bg-indigo-600 text-white py-12 rounded-[3rem] font-black text-4xl shadow-2xl uppercase">
+                                    Replay Level
                                 </button>
                             </div>
                         </div>
@@ -373,15 +417,17 @@
                 );
             };
 
-            useEffect(() => { lucide.createIcons(); }, [screen, currentIndex, isSubmitted]);
+            useEffect(() => {
+                if (window.lucide) window.lucide.createIcons();
+            }, [screen, currentIndex, isSubmitted]);
 
             return (
-                <div className="min-h-screen">
+                <main className="min-h-screen">
                     {screen === 'home' && <Home />}
                     {screen === 'instructions' && <Instructions />}
                     {screen === 'quiz' && <Quiz />}
                     {screen === 'result' && <Result />}
-                </div>
+                </main>
             );
         };
 
